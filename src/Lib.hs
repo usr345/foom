@@ -105,6 +105,12 @@ newtype Position = Position (V2 Float)
 instance Component Position where
   type Storage Position = Map Position
 
+newtype Velocity = Velocity (V2 Float)
+  deriving (Eq, Ord, Show)
+
+instance Component Velocity where
+  type Storage Velocity = Map Velocity
+
 newtype Direction = Direction Float
   deriving (Eq, Ord, Show)
 
@@ -135,6 +141,13 @@ makeWorld "World"
   , ''Alien
 
   , ''Position
+  , ''Velocity
+  -- , ''Acceleration
+
+  , ''Direction
+  -- , ''AngularVelocity
+  -- , ''AngularAccel
+
   , ''Timed
   ]
 
