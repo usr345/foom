@@ -1,4 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE StrictData #-}
 
 module Lib where
 
@@ -21,7 +22,7 @@ instance Component City where
   type Storage City = Map City
 
 -- | Shoots stuff out of the sky.
-newtype Silo = Silo { siloStockpile :: Int }
+newtype Silo = Silo { _siloStockpile :: Int }
   deriving (Show)
 
 instance Component Silo where
@@ -29,8 +30,8 @@ instance Component Silo where
 
 -- | There are many missiles, but those are yours.
 data Intercept = Intercept
-  { _origin :: Position
-  , _target :: Position
+  { _interceptOrigin :: Position
+  , _interceptTarget :: Position
   }
   deriving (Show)
 
@@ -77,11 +78,20 @@ instance Component Alien where
 -- *** Shared
 
 -- | It would be a blast!
-newtype Blast = Blast { blastRadius :: Float }
+data Blast = Blast
+  { _blastPhase :: BlastPhase
+  , _blastTimer :: Float
+  }
   deriving (Show)
 
 instance Component Blast where
   type Storage Blast = Map Blast
+
+data BlastPhase
+  = BlastGrowing
+  | BlastBurning
+  | BlastSmoking
+  deriving (Eq, Ord, Show)
 
 -- ** UI and controls
 
@@ -120,12 +130,6 @@ newtype Direction = Direction Float
 instance Component Direction where
   type Storage Direction = Map Direction
 
-newtype Timed = Timed Float
-  deriving (Eq, Ord, Show)
-
-instance Component Timed where
-  type Storage Timed = Map Timed
-
 -- * The world
 
 makeWorld "World"
@@ -143,6 +147,8 @@ makeWorld "World"
   , ''Bomber
   , ''Alien
 
+  , ''Blast
+
   , ''Position
   , ''Velocity
   -- , ''Acceleration
@@ -151,7 +157,6 @@ makeWorld "World"
   -- , ''AngularVelocity
   -- , ''AngularAccel
 
-  , ''Timed
   ]
 
 type SystemW a = System World a
@@ -159,5 +164,8 @@ type SystemW a = System World a
 -- * Lenses
 
 makeLenses ''Window
-makeClassy ''Intercept
 
+makeLenses ''Intercept
+makeLenses ''Blast
+
+makePrisms ''Position

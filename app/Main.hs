@@ -1,12 +1,14 @@
 module Main where
 
 import Data.Foldable (for_)
+import Data.List (sort)
 import System.Exit (exitSuccess)
 
 import Apecs
 import Apecs.Gloss
 import Control.Lens
 import Linear.V2 (V2(..))
+import Linear.Affine (distanceA)
 import Linear.Metric (normalize)
 
 import Lib
@@ -54,29 +56,33 @@ draw = do
   let
     terrain =
       translate 0 (-50) .
-        color green $
+        color (dark green) $
           rectangleSolid 800 100
 
   cities <- foldDraw $ \(City, Position (V2 px py)) ->
     translate px py .
-      color blue $
+      color (bright blue) $
         rectangleSolid 30 10
 
   silos <- foldDraw $ \(Silo ammo, Position (V2 px py)) ->
     translate px py $ mconcat
       [ color red $
           rectangleSolid 30 10
-      , color blue $
+      , color cyan $
           translate (-40) 30 . scale 0.5 0.25 $
             text (show ammo)
       ]
 
-  intercepts <- foldDraw $ \(Intercept{..}, Position pos) -> do
-    let Position o = _origin
+  intercepts <- foldDraw $ \(i, Position pos) -> do
+    let Position o = i ^. interceptOrigin
     mconcat
       [ drawTrail blue o pos
       , drawMissile cyan pos
       ]
+
+  blasts <- foldDraw $ \(b, Position (V2 px py)) ->
+    translate px py $
+      drawBlast b
 
   let
     scene = translate 0 (-200) $ mconcat
@@ -84,6 +90,7 @@ draw = do
       , terrain
       , cities
       , silos
+      , blasts
       ]
 
     ui = mconcat
@@ -104,6 +111,23 @@ drawMissile c (V2 px py) =
   translate px py . -- rotate phi .
     color c $
       circle 2
+
+drawBlast :: Blast -> Picture
+drawBlast b = color c $ circleSolid r
+  where
+    (c, r) = case b ^. blastPhase of
+      BlastGrowing ->
+        ( white
+        , b ^. blastTimer * 100
+        )
+      BlastBurning ->
+        ( yellow
+        , 20 + (b ^. blastTimer) * 4
+        )
+      BlastSmoking ->
+        ( greyN $ 1 - b ^. blastTimer
+        , max 0 (1 - b ^. blastTimer) * 20
+        )
 
 onInput :: Event -> SystemW ()
 onInput e =
@@ -129,32 +153,32 @@ onInput e =
         pos
 
     EventKey (MouseButton LeftButton) Down _mods (winX, winY) -> do
+      cam <- get global
+      let dst = windowToWorld cam (winX, winY) + V2 0 200
+
       armed <- flip cfoldM [] $ \acc (Silo ammo, Position pos, silo) ->
         if ammo > 0 then
-          pure $ (pos, silo) : acc
+          pure $ (distanceA dst pos, pos, silo) : acc
         else
           pure acc
 
       -- liftIO $ print armed
 
       -- TODO: pick closest to target
-      case armed of
+      case sort armed of
         [] ->
           -- No ammunition left, enjoy the blinkenlighten.
           pure ()
 
-        (origin, silo) : _ -> do
-          cam <- get global
-          let
-            target = windowToWorld cam (winX, winY) + V2 0 200
-            vel = normalize (target - origin) * 100
+        (_dst, src, silo) : _ -> do
+          let vel = normalize (dst - src) * 100
 
           _ <- newEntity
             ( Intercept
-                { _origin = Position origin
-                , _target = Position target
+                { _interceptOrigin = Position src
+                , _interceptTarget = Position dst
                 }
-            , Position origin
+            , Position src
             , Velocity vel
             )
 
@@ -170,11 +194,48 @@ onInput e =
       pure ()
 
 onTick :: Float -> SystemW ()
-onTick dt =
-  -- XXX: there could be some Timed handling, but you can't destroy entities
-  -- and the timeout handling is component-specific.
+onTick dt = do
   stepPosition dt
+  stepBlast dt
+
+  interceptorBlast
 
 stepPosition :: Float -> SystemW ()
 stepPosition dt = cmap $ \(Position pos, Velocity vel) ->
   Position $ pos + vel * V2 dt dt
+
+stepBlast :: Float -> SystemW ()
+stepBlast dt = cmap $ \(blastTimer +~ dt -> b) ->
+  case b ^. blastPhase of
+    BlastGrowing ->
+      Right $
+        if b ^. blastTimer >= 0.2 then
+          b & blastPhase .~ BlastBurning
+            & blastTimer .~ 0
+        else
+          b
+    BlastBurning ->
+      Right $
+        if b ^. blastTimer >= 0.2 then
+          b & blastPhase .~ BlastSmoking
+            & blastTimer .~ 0
+        else
+          b
+    BlastSmoking ->
+      if b ^. blastTimer >= 0.2 then
+        Left $ Not @(Blast, Position, Velocity)
+      else
+        Right b
+
+interceptorBlast :: SystemW ()
+interceptorBlast =
+  cmap $ \(i, Position pos, Velocity vel) ->
+    -- XXX: can overshoot on laggy frames
+    if distanceA (i ^. interceptTarget . _Position) pos <= 10 then
+      Left
+        ( Blast BlastGrowing 0
+        , Velocity $ vel / 5
+        , Not @Intercept
+        )
+    else
+      Right ()
