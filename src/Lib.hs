@@ -5,7 +5,7 @@ module Lib where
 import Apecs
 import Apecs.Gloss
 import Control.Lens
-import Linear.V2
+import Linear.V2 (V2)
 
 -- * Components
 
@@ -28,7 +28,10 @@ instance Component Silo where
   type Storage Silo = Map Silo
 
 -- | There are many missiles, but those are yours.
-newtype Intercept = Intercept Position
+data Intercept = Intercept
+  { _origin :: Position
+  , _target :: Position
+  }
   deriving (Show)
 
 instance Component Intercept where
@@ -156,3 +159,5 @@ type SystemW a = System World a
 -- * Lenses
 
 makeLenses ''Window
+makeClassy ''Intercept
+

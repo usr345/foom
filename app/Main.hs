@@ -6,7 +6,8 @@ import System.Exit (exitSuccess)
 import Apecs
 import Apecs.Gloss
 import Control.Lens
-import Linear.V2
+import Linear.V2 (V2(..))
+import Linear.Metric (normalize)
 
 import Lib
 
@@ -61,25 +62,28 @@ draw = do
       color blue $
         rectangleSolid 30 10
 
-  silos <- foldDraw $ \(Silo _ammo, Position (V2 px py)) ->
-    translate px py .
-      color red $
-        rectangleSolid 30 10
+  silos <- foldDraw $ \(Silo ammo, Position (V2 px py)) ->
+    translate px py $ mconcat
+      [ color red $
+          rectangleSolid 30 10
+      , color blue $
+          translate (-40) 30 . scale 0.5 0.25 $
+            text (show ammo)
+      ]
 
-  intercepts <- foldDraw $ \(Intercept target, Position pos) -> do
-    let V2 px py = pos
-    let phi = const (pi) $ (target, pos)
-
-    translate px py . rotate phi .
-      color cyan $
-        rectangleSolid 5 1
+  intercepts <- foldDraw $ \(Intercept{..}, Position pos) -> do
+    let Position o = _origin
+    mconcat
+      [ drawTrail blue o pos
+      , drawMissile cyan pos
+      ]
 
   let
     scene = translate 0 (-200) $ mconcat
-      [ terrain
+      [ intercepts
+      , terrain
       , cities
       , silos
-      , intercepts
       ]
 
     ui = mconcat
@@ -89,6 +93,17 @@ draw = do
       ]
 
   pure $ scene <> ui
+
+drawTrail :: Color -> V2 Float -> V2 Float -> Picture
+drawTrail c (V2 ox oy) (V2 px py) =
+  color c $
+    line [ (ox, oy), (px, py) ]
+
+drawMissile :: Color -> V2 Float -> Picture
+drawMissile c (V2 px py) =
+  translate px py . -- rotate phi .
+    color c $
+      circle 2
 
 onInput :: Event -> SystemW ()
 onInput e =
@@ -115,7 +130,7 @@ onInput e =
 
     EventKey (MouseButton LeftButton) Down _mods (winX, winY) -> do
       armed <- flip cfoldM [] $ \acc (Silo ammo, Position pos, silo) ->
-        if ammo >=0 then
+        if ammo > 0 then
           pure $ (pos, silo) : acc
         else
           pure acc
@@ -130,13 +145,17 @@ onInput e =
 
         (origin, silo) : _ -> do
           cam <- get global
-          let target = windowToWorld cam (winX, winY) + V2 0 200
-          -- TODO: launch intercept to position
+          let
+            target = windowToWorld cam (winX, winY) + V2 0 200
+            vel = normalize (target - origin) * 100
+
           _ <- newEntity
-            ( Position origin
-            , Velocity 100
-            , Direction $ pi / 3
-            , Intercept $ Position target
+            ( Intercept
+                { _origin = Position origin
+                , _target = Position target
+                }
+            , Position origin
+            , Velocity vel
             )
 
           modify silo $ \(Silo ammo) ->
