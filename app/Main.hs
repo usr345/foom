@@ -1,8 +1,10 @@
 module Main where
 
+import Control.Monad (when, void)
 import Data.Foldable (for_)
 import Data.List (sort)
 import System.Exit (exitSuccess)
+import System.Random (randomRIO)
 
 import Apecs
 import Apecs.Gloss
@@ -22,8 +24,8 @@ main = do
 
 initialize :: SystemW ()
 initialize = do
-  _ <- newEntity (Window 0 0)
-  _ <- newEntity Cursor
+  void $ newEntity (Window 0 0)
+  void $ newEntity Cursor
 
   for_ slots $ \n ->
     if n `elem` [head slots, 0, last slots] then
@@ -80,6 +82,13 @@ draw = do
       , drawMissile cyan pos
       ]
 
+  missiles <- foldDraw $ \(m, Position pos) -> do
+    let o = m ^. missileOrigin . _Position
+    mconcat
+      [ drawTrail (dim red) o pos
+      , drawMissile orange pos
+      ]
+
   blasts <- foldDraw $ \(b, Position (V2 px py)) ->
     translate px py $
       drawBlast b
@@ -87,6 +96,7 @@ draw = do
   let
     scene = translate 0 (-200) $ mconcat
       [ intercepts
+      , missiles
       , terrain
       , cities
       , silos
@@ -170,8 +180,8 @@ onInput e =
           -- No ammunition left, enjoy the blinkenlighten.
           pure ()
 
-        (_dst, src, silo) : _ -> do
-          let vel = normalize (dst - src) * 100
+        (_dist, src, silo) : _ -> do
+          let vel = normalize (dst - src) * 250
 
           _ <- newEntity
             ( Intercept
@@ -199,6 +209,9 @@ onTick dt = do
   stepBlast dt
 
   interceptorBlast
+  missileBlast
+
+  launchMissiles
 
 stepPosition :: Float -> SystemW ()
 stepPosition dt = cmap $ \(Position pos, Velocity vel) ->
@@ -239,3 +252,35 @@ interceptorBlast =
         )
     else
       Right ()
+
+missileBlast :: SystemW ()
+missileBlast =
+  cmap $ \(m, Position pos) ->
+    -- XXX: can overshoot on laggy frames
+    if distanceA (m ^. missileTarget . _Position) pos <= 10 then
+      Left
+        ( Blast BlastGrowing 0
+        , Velocity $ V2 0 25
+        , Not @Missile
+        )
+    else
+      Right ()
+
+launchMissiles :: SystemW ()
+launchMissiles = do
+  dice <- liftIO $ randomRIO @Float (0.0, 1.0)
+  when (dice <= 0.01) $ do
+    ox <- liftIO $ randomRIO (-400, 400)
+    let o = V2 ox 300 + V2 0 200
+
+    tx <- liftIO $ randomRIO (-400, 400)
+    let t = V2 tx 0
+
+    void $ newEntity
+      ( Missile
+          { _missileOrigin = Position o
+          , _missileTarget = Position t
+          }
+      , Position o
+      , Velocity $ normalize (t - o) * 75
+      )

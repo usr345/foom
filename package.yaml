@@ -32,6 +32,7 @@ dependencies:
 - aeson
 - filepath
 - linear
+- random
 
 default-extensions:
 - AutoDeriveTypeable

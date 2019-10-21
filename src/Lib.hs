@@ -41,7 +41,10 @@ instance Component Intercept where
 -- *** Enemy-owned things
 
 -- | Oldie but goodie. One of those is enough to ruin a city.
-newtype Missile = Missile Position
+data Missile = Missile
+  { _missileOrigin :: Position
+  , _missileTarget :: Position
+  }
   deriving (Show)
 
 instance Component Missile where
@@ -166,6 +169,7 @@ type SystemW a = System World a
 makeLenses ''Window
 
 makeLenses ''Intercept
+makeLenses ''Missile
 makeLenses ''Blast
 
 makePrisms ''Position
