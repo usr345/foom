@@ -8,7 +8,7 @@ import System.Random (randomRIO)
 
 import Apecs
 import Apecs.Gloss
-import Control.Lens
+import Control.Lens hiding (set)
 import Linear.V2 (V2(..))
 import Linear.Affine (distanceA)
 import Linear.Metric (normalize)
@@ -45,7 +45,7 @@ initialize = do
       )
 
     newCity x = newEntity
-      ( City
+      ( City False
       , Position $ V2 x 0
       )
 
@@ -57,9 +57,9 @@ draw = do
         color (dark green) $
           rectangleSolid 800 100
 
-  cities <- foldDraw $ \(City, Position (V2 px py)) ->
+  cities <- foldDraw $ \(City ruined, Position (V2 px py)) ->
     translate px py .
-      color (bright blue) $
+      color (if ruined then greyN 0.25 else light blue) $
         rectangleSolid 30 10
 
   silos <- foldDraw $ \(Silo ammo, Position (V2 px py)) ->
@@ -94,13 +94,16 @@ draw = do
       color red $
         circle 4
 
-  score <- foldDraw $ \Score{..} ->
-    translate (-400) (-350) .
-      scale 0.5 0.25 .
-        color magenta .
-          text $ unwords
-            [ "SCORE: " <> show _interceptorHits
-            ]
+  score <- foldDraw $ \Score{..} -> mconcat
+    [ translate (-400) (-340) .
+        scale 0.25 0.25 .
+          color cyan .
+            text $ "Score: " <> show _interceptorHits
+    , translate 0 (-340) .
+        scale 0.25 0.25 .
+          color magenta .
+            text $ "Casualties: " <> show _cityHits <> "m"
+    ]
 
   let
     scene = translate 0 (-200) $ mconcat
@@ -218,11 +221,11 @@ onTick dt = do
   stepPosition dt
   stepBlast dt
 
-  interceptorBlast
   interceptorHit
+  interceptorBlast
 
   launchMissiles
-  missileBlast
+  missileHit
 
 stepPosition :: Float -> SystemW ()
 stepPosition dt = cmap $ \(Position pos, Velocity vel) ->
@@ -275,19 +278,6 @@ interceptorHit =
       else
         pure ()
 
-missileBlast :: SystemW ()
-missileBlast =
-  cmap $ \(m, Position pos) ->
-    -- XXX: can overshoot on laggy frames
-    if distanceA (m ^. missileTarget . _Position) pos <= 10 then
-      Left
-        ( Blast BlastGrowing 0
-        , Velocity $ V2 0 25
-        , Not @Missile
-        )
-    else
-      Right ()
-
 launchMissiles :: SystemW ()
 launchMissiles = do
   dice <- liftIO $ randomRIO @Float (0.0, 1.0)
@@ -306,3 +296,22 @@ launchMissiles = do
       , Position o
       , Velocity $ normalize (t - o) * 75
       )
+
+missileHit :: SystemW ()
+missileHit =
+  cmapM_ $ \(Missile{}, Position mp@(V2 _mx my), m) ->
+    when (my <= 0) $ do
+      cmapM_ $ \(City ruined, Position cp, c) ->
+        when (not ruined && distanceA mp cp <= 35) $ do
+          modify global $ cityHits +~ 1
+          modify c $ cityRuined .~ True
+
+      cmapM_ $ \(Silo ammo, Position sp, s) ->
+        when (distanceA mp sp <= 35) $ do
+          modify global $ siloHits +~ 1
+          modify s $ siloStockpile .~
+            max 0 (truncate @Float $ fromIntegral ammo / 2)
+
+      destroy m $ Proxy @Missile
+      set m $ Blast BlastGrowing 0
+      set m $ Velocity $ V2 0 25

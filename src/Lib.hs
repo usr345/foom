@@ -15,7 +15,7 @@ import Linear.V2 (V2)
 -- *** Player-owned things
 
 -- | Think of the children!
-data City = City
+newtype City = City { _cityRuined :: Bool }
   deriving (Show)
 
 instance Component City where
@@ -189,6 +189,7 @@ type SystemW a = System World a
 makeLenses ''Window
 makeLenses ''Score
 
+makeLenses ''City
 makeLenses ''Silo
 makeLenses ''Intercept
 makeLenses ''Missile
