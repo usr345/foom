@@ -26,6 +26,7 @@ initialize :: SystemW ()
 initialize = do
   void $ newEntity (Window 0 0)
   void $ newEntity Cursor
+  void $ newEntity emptyScore
 
   for_ slots $ \n ->
     if n `elem` [head slots, 0, last slots] then
@@ -50,11 +51,6 @@ initialize = do
 
 draw :: SystemW Picture
 draw = do
-  cursor <- foldDraw $ \(Cursor, Position (V2 curX curY)) ->
-    translate curX curY .
-      color red $
-        circle 4
-
   let
     terrain =
       translate 0 (-50) .
@@ -71,7 +67,7 @@ draw = do
       [ color red $
           rectangleSolid 30 10
       , color cyan $
-          translate (-40) 30 . scale 0.5 0.25 $
+          translate (-40) 30 . scale 0.33 0.17 $
             text (show ammo)
       ]
 
@@ -93,6 +89,19 @@ draw = do
     translate px py $
       drawBlast b
 
+  cursor <- foldDraw $ \(Cursor, Position (V2 curX curY)) ->
+    translate curX curY .
+      color red $
+        circle 4
+
+  score <- foldDraw $ \Score{..} ->
+    translate (-400) (-350) .
+      scale 0.5 0.25 .
+        color magenta .
+          text $ unwords
+            [ "SCORE: " <> show _interceptorHits
+            ]
+
   let
     scene = translate 0 (-200) $ mconcat
       [ intercepts
@@ -106,6 +115,7 @@ draw = do
     ui = mconcat
       [ color red $ rectangleWire 800 600
       , color blue $ rectangleWire 1600 900
+      , score
       , cursor
       ]
 
@@ -209,9 +219,10 @@ onTick dt = do
   stepBlast dt
 
   interceptorBlast
-  missileBlast
+  interceptorHit
 
   launchMissiles
+  missileBlast
 
 stepPosition :: Float -> SystemW ()
 stepPosition dt = cmap $ \(Position pos, Velocity vel) ->
@@ -252,6 +263,17 @@ interceptorBlast =
         )
     else
       Right ()
+
+interceptorHit :: SystemW ()
+interceptorHit =
+  cmapM_ $ \(Missile{}, Position mp, missile) ->
+    cmapM_ $ \(b, Position bp) ->
+      if distanceA mp bp <= 20 + (b ^. blastTimer) * 4 then do
+        destroy missile $ Proxy @(Missile, Position, Velocity)
+        cmap $ interceptorHits +~ 1
+        cmap $ siloStockpile +~ 1
+      else
+        pure ()
 
 missileBlast :: SystemW ()
 missileBlast =

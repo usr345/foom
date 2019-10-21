@@ -113,6 +113,25 @@ data Window = Window
 instance Component Window where
   type Storage Window = Unique Window
 
+-- | Resize handler store.
+data Score = Score
+  { _interceptorHits :: Int
+  , _siloHits        :: Int
+  , _cityHits        :: Int
+  , _groundHits      :: Int
+  } deriving (Show)
+
+emptyScore :: Score
+emptyScore = Score
+  { _interceptorHits = 0
+  , _siloHits        = 0
+  , _cityHits        = 0
+  , _groundHits      = 0
+  }
+
+instance Component Score where
+  type Storage Score = Unique Score
+
 -- ** Common aspects
 
 newtype Position = Position (V2 Float)
@@ -139,6 +158,7 @@ makeWorld "World"
   [ ''Camera
   , ''Cursor
   , ''Window
+  , ''Score
 
   , ''City
   , ''Silo
@@ -167,7 +187,9 @@ type SystemW a = System World a
 -- * Lenses
 
 makeLenses ''Window
+makeLenses ''Score
 
+makeLenses ''Silo
 makeLenses ''Intercept
 makeLenses ''Missile
 makeLenses ''Blast
