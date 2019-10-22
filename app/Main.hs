@@ -196,36 +196,37 @@ onInput e =
 
     EventKey (MouseButton LeftButton) Down _mods (winX, winY) -> do
       cam <- get global
-      let dst = windowToWorld cam (winX, winY) + V2 0 200
 
-      armed <- flip cfoldM [] $ \acc (Silo ammo, Position pos, silo) ->
-        if ammo > 0 then
-          pure $ (distanceA dst pos, pos, silo) : acc
-        else
-          pure acc
+      let cur = windowToWorld cam (winX, winY)
+      let dst@(V2 _dx dy) = cur + V2 0 200
+          isSafe = dy > 25 -- XXX: prevent detonating too low to ruin a city
+      when (insideUI cur && isSafe) $ do
 
-      -- liftIO $ print armed
+        armed <- flip cfoldM [] $ \acc (Silo ammo, Position pos, silo) ->
+          if ammo > 0 then
+            pure $ (distanceA dst pos, pos, silo) : acc
+          else
+            pure acc
 
-      -- TODO: pick closest to target
-      case sort armed of
-        [] ->
-          -- No ammunition left, enjoy the blinkenlighten.
-          pure ()
+        case sort armed of
+          [] ->
+            -- No ammunition left, enjoy the blinkenlighten.
+            pure ()
 
-        (_dist, src, silo) : _ -> do
-          let vel = normalize (dst - src) * 250
+          (_dist, src, silo) : _ -> do
+            let vel = normalize (dst - src) * 250
 
-          _ <- newEntity
-            ( Intercept
-                { _interceptOrigin = Position src
-                , _interceptTarget = Position dst
-                }
-            , Position src
-            , Velocity vel
-            )
+            _ <- newEntity
+              ( Intercept
+                  { _interceptOrigin = Position src
+                  , _interceptTarget = Position dst
+                  }
+              , Position src
+              , Velocity vel
+              )
 
-          modify silo $ \(Silo ammo) ->
-            Silo (ammo - 1)
+            modify silo $ \(Silo ammo) ->
+              Silo (ammo - 1)
 
     -- Keyboard
 
@@ -336,3 +337,11 @@ missileHit =
       destroy m $ Proxy @Missile
       set m $ Blast BlastGrowing 0
       set m $ Velocity $ V2 0 25
+
+insideUI :: V2 Float -> Bool
+insideUI (V2 cx cy) = and
+  [ cx >= -400
+  , cx <= 400
+  , cy >= -300
+  , cy <= 300
+  ]
