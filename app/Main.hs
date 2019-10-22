@@ -53,53 +53,16 @@ draw :: SystemW Picture
 draw = do
   terrain <- drawTerrain
 
-  cities <- foldDraw $ \(City ruined, Position (V2 px py)) ->
-    translate px py .
-      color (if ruined then greyN 0.25 else light blue) $
-        rectangleSolid 30 10
+  cities <- foldDraw drawCity
+  silos <- foldDraw drawSilo
 
-  silos <- foldDraw $ \(Silo ammo, Position (V2 px py)) ->
-    translate px py $ mconcat
-      [ color red $
-          rectangleSolid 30 10
-      , color cyan $
-          translate (-40) 30 . scale 0.33 0.17 $
-            text (show ammo)
-      ]
+  intercepts <- foldDraw drawIntercept
+  missiles <- foldDraw drawMissile
 
-  intercepts <- foldDraw $ \(i, Position pos) -> do
-    let Position o = i ^. interceptOrigin
-    mconcat
-      [ drawTrail blue o pos
-      , drawMissile cyan pos
-      ]
+  blasts <- foldDraw drawBlast
 
-  missiles <- foldDraw $ \(m, Position pos) -> do
-    let o = m ^. missileOrigin . _Position
-    mconcat
-      [ drawTrail (dim red) o pos
-      , drawMissile orange pos
-      ]
-
-  blasts <- foldDraw $ \(b, Position (V2 px py)) ->
-    translate px py $
-      drawBlast b
-
-  cursor <- foldDraw $ \(Cursor, Position (V2 curX curY)) ->
-    translate curX curY .
-      color red $
-        circle 4
-
-  score <- foldDraw $ \Score{..} -> mconcat
-    [ translate (-400) (-340) .
-        scale 0.25 0.25 .
-          color cyan .
-            text $ "Score: " <> show _interceptorHits
-    , translate 0 (-340) .
-        scale 0.25 0.25 .
-          color magenta .
-            text $ "Casualties: " <> show _cityHits <> "m"
-    ]
+  cursor <- foldDraw drawCursor
+  score <- foldDraw drawScore
 
   let
     scene = translate 0 (-200) $ mconcat
@@ -143,21 +106,85 @@ drawTerrain = do
       color groundColor $
         rectangleSolid 800 100
 
+drawCity :: (City, Position) -> Picture
+drawCity (City ruined, Position (V2 px py)) =
+  translate px py .
+    color col $
+      rectangleSolid 30 10
+  where
+    col =
+      if ruined then
+        greyN 0.25
+      else
+        kindaBlue
+
+    kindaBlue = makeColor 0.2 0.3 1.0 1.0
+
+drawSilo :: (Silo, Position) -> Picture
+drawSilo (Silo ammo, Position (V2 px py)) =
+  translate px py $ mconcat
+    [ color col $
+        rectangleSolid 30 10
+    , color cyan $
+        translate (-40) 30 . scale 0.33 0.17 $
+          text (show ammo)
+    ]
+  where
+    col =
+      if ammo > 0 then
+        red
+      else
+        darkRed
+
+    darkRed = makeColor 0.3 0 0 1.0
+
+drawIntercept :: (Intercept, Position) -> Picture
+drawIntercept (i, Position pos) =
+  mconcat
+    [ drawTrail blue o pos
+    , drawProjectile cyan pos
+    , drawTarget
+    ]
+  where
+    drawTarget =
+      translate tx ty .
+        color (withAlpha 0.7 cyan) $ mconcat
+          [ line [(2, 2), (4, 4)]
+          , line [(-2, 2), (-4, 4)]
+          , line [(2, -2), (4, -4)]
+          , line [(-2, -2), (-4, -4)]
+          ]
+
+    Position o = i ^. interceptOrigin
+    Position (V2 tx ty) = i ^. interceptTarget
+
+drawMissile :: (Missile, Position) -> Picture
+drawMissile (m, Position pos) =
+  mconcat
+    [ drawTrail (withAlpha 0.5 red) o pos
+    , drawProjectile orange pos
+    ]
+  where
+    o = m ^. missileOrigin . _Position
+
 drawTrail :: Color -> V2 Float -> V2 Float -> Picture
 drawTrail c (V2 ox oy) (V2 px py) =
   color c $
     line [ (ox, oy), (px, py) ]
 
-drawMissile :: Color -> V2 Float -> Picture
-drawMissile c (V2 px py) =
+drawProjectile :: Color -> V2 Float -> Picture
+drawProjectile c (V2 px py) =
   translate px py . -- rotate phi .
     color c $
       circle 2
 
-drawBlast :: Blast -> Picture
-drawBlast b = color c $ circleSolid r
+drawBlast :: (Blast, Position) -> Picture
+drawBlast (b, Position (V2 px py)) =
+  translate px py .
+    color col $
+      circleSolid r
   where
-    (c, r) = case b ^. blastPhase of
+    (col, r) = case b ^. blastPhase of
       BlastGrowing ->
         ( white
         , b ^. blastTimer * 100
@@ -170,6 +197,27 @@ drawBlast b = color c $ circleSolid r
         ( greyN $ 1 - b ^. blastTimer
         , max 0 (1 - b ^. blastTimer) * 20
         )
+
+drawCursor :: (Cursor, Position) -> Picture
+drawCursor (_, Position cur@(V2 curX curY)) =
+  if insideUI cur then
+    translate curX curY .
+      color red $
+        circle 4
+  else
+    mempty
+
+drawScore :: Score -> Picture
+drawScore Score{..} = mconcat
+  [ translate (-400) (-340) .
+      scale 0.25 0.25 .
+        color cyan .
+          text $ "Score: " <> show _interceptorHits
+  , translate 0 (-340) .
+      scale 0.25 0.25 .
+        color magenta .
+          text $ "Casualties: " <> show _cityHits <> "m"
+  ]
 
 onInput :: Event -> SystemW ()
 onInput e =
