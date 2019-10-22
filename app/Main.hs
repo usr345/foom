@@ -51,11 +51,7 @@ initialize = do
 
 draw :: SystemW Picture
 draw = do
-  let
-    terrain =
-      translate 0 (-50) .
-        color (dark green) $
-          rectangleSolid 800 100
+  terrain <- drawTerrain
 
   cities <- foldDraw $ \(City ruined, Position (V2 px py)) ->
     translate px py .
@@ -123,6 +119,29 @@ draw = do
       ]
 
   pure $ scene <> ui
+
+drawTerrain :: SystemW Picture
+drawTerrain = do
+  score <- get global
+  let
+    hits = fromIntegral $ score ^. groundHits
+    greyish = greyN . max 0.1 $ 1 - sqrt hits / 10
+    brown = makeColorI 139 69 19 255
+
+    groundColor = if
+      | hits == 0 ->
+          green
+      | hits <= 15 ->
+          mixColors (1.0 - hits / 15) (hits / 15) green brown
+      | hits <= 30 ->
+          mixColors (1.0 - (hits - 15) / 15) ((hits - 15) / 15) brown greyish
+      | otherwise ->
+          greyish
+
+  pure $
+    translate 0 (-50) .
+      color groundColor $
+        rectangleSolid 800 100
 
 drawTrail :: Color -> V2 Float -> V2 Float -> Picture
 drawTrail c (V2 ox oy) (V2 px py) =
@@ -301,6 +320,8 @@ missileHit :: SystemW ()
 missileHit =
   cmapM_ $ \(Missile{}, Position mp@(V2 _mx my), m) ->
     when (my <= 0) $ do
+      modify global $ groundHits +~ 1
+
       cmapM_ $ \(City ruined, Position cp, c) ->
         when (not ruined && distanceA mp cp <= 35) $ do
           modify global $ cityHits +~ 1
