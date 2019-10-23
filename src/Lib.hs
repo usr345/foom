@@ -51,7 +51,11 @@ instance Component Missile where
   type Storage Missile = Map Missile
 
 -- | Masquerades for the ordinary then suddenly splits up.
-newtype MIRV = MIRV [Position]
+data MIRV = MIRV
+  { _mirvOrigin :: Position
+  , _mirvSplit  :: Position
+  , _mirvTarget :: Position
+  }
   deriving (Show)
 
 instance Component MIRV where
@@ -193,6 +197,7 @@ makeLenses ''City
 makeLenses ''Silo
 makeLenses ''Intercept
 makeLenses ''Missile
+makeLenses ''MIRV
 makeLenses ''Blast
 
 makePrisms ''Position

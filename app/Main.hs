@@ -58,6 +58,7 @@ draw = do
 
   intercepts <- foldDraw drawIntercept
   missiles <- foldDraw drawMissile
+  mirvs <- foldDraw drawMirv
 
   blasts <- foldDraw drawBlast
 
@@ -68,6 +69,7 @@ draw = do
     scene = translate 0 (-200) $ mconcat
       [ intercepts
       , missiles
+      , mirvs
       , terrain
       , cities
       , silos
@@ -166,6 +168,15 @@ drawMissile (m, Position pos) =
     ]
   where
     o = m ^. missileOrigin . _Position
+
+drawMirv :: (MIRV, Position) -> Picture
+drawMirv (m, Position pos) =
+  mconcat
+    [ drawTrail (withAlpha 0.5 red) o pos
+    , drawProjectile orange pos
+    ]
+  where
+    o = m ^. mirvOrigin . _Position
 
 drawTrail :: Color -> V2 Float -> V2 Float -> Picture
 drawTrail c (V2 ox oy) (V2 px py) =
@@ -295,6 +306,9 @@ onTick dt = do
   launchMissiles
   missileHit
 
+  launchMIRV
+  mirvSplitup
+
 stepPosition :: Float -> SystemW ()
 stepPosition dt = cmap $ \(Position pos, Velocity vel) ->
   Position $ pos + vel * V2 dt dt
@@ -337,8 +351,8 @@ interceptorBlast =
 
 interceptorHit :: SystemW ()
 interceptorHit =
-  cmapM_ $ \(Missile{}, Position mp, missile) ->
-    cmapM_ $ \(b, Position bp) ->
+  cmapM_ $ \(b, Position bp) -> do
+    cmapM_ $ \(Missile{}, Position mp, missile) ->
       if distanceA mp bp <= 20 + (b ^. blastTimer) * 4 then do
         destroy missile $ Proxy @(Missile, Position, Velocity)
         cmap $ interceptorHits +~ 1
@@ -346,24 +360,59 @@ interceptorHit =
       else
         pure ()
 
+    cmapM_ $ \(MIRV{}, Position mp, mirv) ->
+      if distanceA mp bp <= 20 + (b ^. blastTimer) * 4 then do
+        destroy mirv $ Proxy @(MIRV, Position, Velocity)
+        cmap $ interceptorHits +~ 1
+        cmap $ siloStockpile +~ 1
+      else
+        pure ()
+
 launchMissiles :: SystemW ()
 launchMissiles = do
-  dice <- liftIO $ randomRIO @Float (0.0, 1.0)
-  when (dice <= 0.01) $ do
-    ox <- liftIO $ randomRIO (-400, 400)
-    let o = V2 ox 300 + V2 0 200
+  count <- cfold (\n Missile{} -> n + 1) (0 :: Int)
+  when (count < 10) $ do
+    dice <- liftIO $ randomRIO @Int (0, 60 * 2)
+    when (dice == 0) $ do
+      ox <- liftIO $ randomRIO (-400, 400)
+      let o = V2 ox 300 + V2 0 200
 
-    tx <- liftIO $ randomRIO (-400, 400)
-    let t = V2 tx 0
+      tx <- liftIO $ randomRIO (-400, 400)
+      let t = V2 tx 0
 
-    void $ newEntity
-      ( Missile
-          { _missileOrigin = Position o
-          , _missileTarget = Position t
-          }
-      , Position o
-      , Velocity $ normalize (t - o) * 75
-      )
+      void $ newEntity
+        ( Missile
+            { _missileOrigin = Position o
+            , _missileTarget = Position t
+            }
+        , Position o
+        , Velocity $ normalize (t - o) * 75
+        )
+
+launchMIRV :: SystemW ()
+launchMIRV = do
+  count <- cfold (\n MIRV{} -> n + 1) (0 :: Int)
+  when (count < 1) $ do
+    dice <- liftIO $ randomRIO @Int (0, 60 * 5)
+    when (dice == 0) $ do
+      ox <- liftIO $ randomRIO (-400, 400)
+      let o@(V2 _ oy) = V2 ox 300 + V2 0 200
+
+      tx <- liftIO $ randomRIO (-400, 400)
+      let t = V2 tx 0
+
+      fuse <- liftIO $ randomRIO (0.33, 0.66)
+      let m = V2 (ox * fuse + tx * (1 - fuse)) (oy * fuse)
+
+      void $ newEntity
+        ( MIRV
+            { _mirvOrigin = Position o
+            , _mirvSplit  = Position m
+            , _mirvTarget = Position t
+            }
+        , Position o
+        , Velocity $ normalize (t - o) * 66
+        )
 
 missileHit :: SystemW ()
 missileHit =
@@ -385,6 +434,28 @@ missileHit =
       destroy m $ Proxy @Missile
       set m $ Blast BlastGrowing 0
       set m $ Velocity $ V2 0 25
+
+mirvSplitup :: SystemW ()
+mirvSplitup =
+  cmapM_ $ \(m, Position mp, mirv) -> do
+    let ms = m ^. mirvSplit . _Position
+    when (distanceA mp ms < 10) $ do
+      destroy mirv $ Proxy @(MIRV, Position, Velocity)
+
+      let o = m ^. mirvSplit . _Position
+      let V2 tx ty = m ^. mirvTarget . _Position
+
+      for_ [-1 .. 1] $ \n -> do
+        let t = V2 (max (-350) . min 350 $ tx + n * 50) ty
+
+        void $ newEntity
+          ( Missile
+              { _missileOrigin = Position o
+              , _missileTarget = Position t
+              }
+          , Position mp
+          , Velocity $ normalize (t - o) * 75
+          )
 
 insideUI :: V2 Float -> Bool
 insideUI (V2 cx cy) = and
