@@ -1,12 +1,11 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE StrictData #-}
 
-module Lib where
+module Component where
 
-import Apecs
-import Apecs.Gloss
-import Control.Lens
-import Linear.V2 (V2)
+import Apecs (Component(..), Global, Map, Unique)
+import Control.Lens (makeLenses, makePrisms)
+import Linear.V2 (V2(..))
 
 -- * Components
 
@@ -117,6 +116,34 @@ data Window = Window
 instance Component Window where
   type Storage Window = Unique Window
 
+newtype Time = Time Float
+  deriving (Show, Eq, Ord)
+
+instance Semigroup Time where
+  Time a <> Time b = Time (a + b)
+
+instance Monoid Time where
+  mempty = Time 0
+
+instance Component Time where
+  type Storage Time = Global Time
+
+data Scene
+  = Init
+  | Intro
+  | Gameplay
+  | Outro
+  deriving (Show)
+
+instance Semigroup Scene where
+  _a <> b = b
+
+instance Monoid Scene where
+  mempty = Init
+
+instance Component Scene where
+  type Storage Scene = Global Scene
+
 -- | Resize handler store.
 data Score = Score
   { _interceptorHits :: Int
@@ -156,38 +183,6 @@ newtype Direction = Direction Float
 instance Component Direction where
   type Storage Direction = Map Direction
 
--- * The world
-
-makeWorld "World"
-  [ ''Camera
-  , ''Cursor
-  , ''Window
-  , ''Score
-
-  , ''City
-  , ''Silo
-  , ''Intercept
-
-  , ''Missile
-  , ''MIRV
-  , ''SmartBomb
-  , ''Bomber
-  , ''Alien
-
-  , ''Blast
-
-  , ''Position
-  , ''Velocity
-  -- , ''Acceleration
-
-  , ''Direction
-  -- , ''AngularVelocity
-  -- , ''AngularAccel
-
-  ]
-
-type SystemW a = System World a
-
 -- * Lenses
 
 makeLenses ''Window
@@ -201,3 +196,11 @@ makeLenses ''MIRV
 makeLenses ''Blast
 
 makePrisms ''Position
+
+insideUI :: V2 Float -> Bool
+insideUI (V2 cx cy) = and
+  [ cx >= -400
+  , cx <= 400
+  , cy >= -300
+  , cy <= 300
+  ]
