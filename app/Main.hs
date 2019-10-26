@@ -4,10 +4,10 @@ import Apecs
 import Apecs.Gloss
 
 import World (initWorld)
-import System.Init (initialize)
-import System.Draw (draw)
-import System.Input (onInput)
-import System.Tick (onTick)
+import World.Init (initialize)
+import World.Draw (draw)
+import World.Input (onInput)
+import World.Tick (onTick)
 
 main :: IO ()
 main = do

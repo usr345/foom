@@ -1,10 +1,8 @@
-module System.Input where
+module Scene.Gameplay.Input where
 
 import Control.Monad (when)
-import Control.Monad.Reader (liftIO)
 
 import Data.List (sort)
-import System.Exit (exitSuccess)
 
 import Apecs (cfoldM, cmap, global, newEntity)
 import Apecs.Gloss (Camera(..), windowToWorld)
@@ -18,6 +16,8 @@ import qualified Apecs as Entity
 
 import Component
 import World (SystemW)
+
+import qualified Scene.Outro
 
 onInput :: Event -> SystemW ()
 onInput e =
@@ -79,7 +79,7 @@ onInput e =
     -- Keyboard
 
     EventKey (SpecialKey KeyEsc) Up _mods _pos ->
-      liftIO exitSuccess
+      Scene.Outro.initialize
 
     _ ->
       pure ()

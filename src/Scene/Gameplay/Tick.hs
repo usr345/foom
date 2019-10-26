@@ -1,4 +1,4 @@
-module System.Tick where
+module Scene.Gameplay.Tick where
 
 import Control.Monad (when, void)
 import Control.Monad.Reader (liftIO)
@@ -19,29 +19,6 @@ import World (SystemW)
 
 onTick :: Float -> SystemW ()
 onTick dt = do
-  stepTime dt
-
-  Entity.get global >>= \case
-    Init ->
-      pure ()
-    Intro ->
-      onTickIntro dt
-    Gameplay  ->
-      onTickGameplay dt
-    Outro ->
-      onTickOutro dt
-
-onTickIntro :: Float -> SystemW ()
-onTickIntro _dt =
-  pure ()
-
-onTickOutro :: Float -> SystemW ()
-onTickOutro _dt =
-  pure ()
-
-onTickGameplay :: Float -> SystemW ()
-onTickGameplay dt = do
-  stepPosition dt
   stepBlast dt
 
   interceptorHit
@@ -52,14 +29,6 @@ onTickGameplay dt = do
 
   launchMIRV
   mirvSplitup
-
-stepTime :: Float -> SystemW ()
-stepTime dt =
-  Entity.modify global $ \(Time t) -> Time (t + dt)
-
-stepPosition :: Float -> SystemW ()
-stepPosition dt = cmap $ \(Position pos, Velocity vel) ->
-  Position $ pos + vel * V2 dt dt
 
 stepBlast :: Float -> SystemW ()
 stepBlast dt = cmap $ \(blastTimer +~ dt -> b) ->

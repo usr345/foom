@@ -1,19 +1,17 @@
-module System.Init where
+module World.Init where
 
 import Control.Monad (void)
 
-import Apecs (global, newEntity, ($=))
+import Apecs (newEntity)
 
 import Component
 import World (SystemW)
 
-import qualified Scene.Gameplay as Game
+import qualified Scene.Load as Load
 
 initialize :: SystemW ()
 initialize = do
   void $ newEntity (Window 0 0)
   void $ newEntity Cursor
 
-  Game.initialize
-
-  global $= Gameplay -- TODO: intro
+  Load.initialize

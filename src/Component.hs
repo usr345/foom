@@ -129,7 +129,7 @@ instance Component Time where
   type Storage Time = Global Time
 
 data Scene
-  = Init
+  = Load
   | Intro
   | Gameplay
   | Outro
@@ -139,7 +139,7 @@ instance Semigroup Scene where
   _a <> b = b
 
 instance Monoid Scene where
-  mempty = Init
+  mempty = Load
 
 instance Component Scene where
   type Storage Scene = Global Scene

@@ -1,4 +1,4 @@
-module System.Draw where
+module Scene.Gameplay.Draw where
 
 import Apecs
 import Apecs.Gloss
