@@ -1,7 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE StrictData #-}
 
-module Component where
+module World.Components where
 
 import Apecs (Component(..), Global, Map, Unique)
 import Control.Lens (makeLenses, makePrisms)

@@ -4,7 +4,7 @@ import Control.Monad (void)
 
 import Apecs (newEntity)
 
-import Component
+import World.Components
 import World (SystemW)
 
 import qualified Scene.Load as Load

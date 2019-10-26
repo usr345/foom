@@ -4,7 +4,7 @@ import Apecs (global, ($=))
 import Apecs.Gloss (Event, Picture)
 import Debug.Trace (traceM)
 
-import Component (Scene(..))
+import World.Components (Scene(..), Time(..))
 import World (SystemW)
 
 import qualified Scene.Intro
@@ -12,10 +12,12 @@ import qualified Scene.Intro
 initialize :: SystemW ()
 initialize = do
   traceM "Load: initialize"
-  global $= Load
+  global $= (Load, Time 0)
+  -- TODO: load sounds etc.
 
 draw :: SystemW Picture
 draw =
+  -- TODO: render splash screen and maybe progress bar.
   pure mempty
 
 onTick :: Float -> SystemW ()

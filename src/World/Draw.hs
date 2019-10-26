@@ -5,7 +5,7 @@ import Apecs.Gloss (Picture)
 
 import qualified Apecs as Entity
 
-import Component (Scene(..))
+import World.Components (Scene(..))
 import World (SystemW)
 
 import qualified Scene.Load as Load

@@ -5,7 +5,7 @@ import Linear.V2 (V2(..))
 
 import qualified Apecs as Entity
 
-import Component
+import World.Components
 import World (SystemW)
 
 import qualified Scene.Load as Load

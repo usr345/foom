@@ -1,11 +1,13 @@
 module Scene.Gameplay.Draw where
 
-import Apecs
+import Apecs (global)
 import Apecs.Gloss
 import Control.Lens hiding (set)
 import Linear.V2 (V2(..))
 
-import Component
+import qualified Apecs as Entity
+
+import World.Components
 import World (SystemW)
 
 draw :: SystemW Picture
@@ -46,7 +48,7 @@ draw = do
 
 drawTerrain :: SystemW Picture
 drawTerrain = do
-  score <- get global
+  score <- Entity.get global
   let
     hits = fromIntegral $ score ^. groundHits
     greyish = greyN . max 0.1 $ 1 - sqrt hits / 10
