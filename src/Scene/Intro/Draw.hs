@@ -9,18 +9,19 @@ import Apecs.Gloss
 
 import qualified Apecs as Entity
 
-import Scene.Intro.Components
+-- import Scene.Intro.Components
 import World.Components
 import Utils.Draw (textLines)
+import Utils.Debug (Measure(..))
 import World (SystemW)
 
 draw :: SystemW Picture
 draw = do
   Time _t <- Entity.get global
-  IntroState{..} <- fromJust <$> cfold (\_ is -> Just is) Nothing
+  Measure{..} <- fromJust <$> cfold (\_ is -> Just is) Nothing
   let
     topMsg =
-      translate (-400) (372 + _isOffset) . scale _isScaleX _isScaleY .
+      translate (-400) 372 . scale 0.16 0.12 .
         color cyan $
           textLines
             [ "FOOM v0.8"
@@ -34,7 +35,7 @@ draw = do
         rectangleWire 800 600
   let
     bottomMsg =
-      translate (-400) (-312 - _isOffset) . scale _isScaleX _isScaleY .
+      translate (-400) (-312) . scale 0.16 0.12 .
         color cyan $
           textLines
             [ "Press any button to assume direct control."
@@ -48,6 +49,6 @@ draw = do
     , viewScreen
     , scale 0.2 0.2 .
         color green .
-          text . unwords $ map show [_isOffset, _isScaleX, _isScaleY]
+          text . unwords $ map show [_mOffsetX, _mOffsetY, _mScaleX, _mScaleY]
     , bottomMsg
     ]

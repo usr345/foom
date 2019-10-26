@@ -9,7 +9,8 @@ import Apecs (Has(..), Storage, SystemT(..), explInit, makeWorld)
 import Apecs.Gloss (Camera)
 
 import World.Components -- TODO: qualify
-import qualified Scene.Intro.Components as Intro
+-- import qualified Scene.Intro.Components as Intro
+import qualified Utils.Debug as Debug
 
 -- * The world
 
@@ -20,6 +21,8 @@ makeWorld "World"
   , ''Time
 
   , ''Scene
+  , ''Foom
+
   , ''Score
 
   , ''City
@@ -42,7 +45,7 @@ makeWorld "World"
   -- , ''AngularVelocity
   -- , ''AngularAccel
 
-  , ''Intro.IntroState
+  , ''Debug.Measure
   ]
 
 type SystemW a = SystemT World IO a

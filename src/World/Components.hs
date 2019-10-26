@@ -11,6 +11,26 @@ import Linear.V2 (V2(..))
 
 -- ** Game domain
 
+data Foom = Foom
+  { _foomStatus   :: FoomStatus
+  , _foomProgress :: Float
+  } deriving (Show)
+
+instance Component Foom where
+  type Storage Foom = Unique Foom
+
+initialFoom :: Foom
+initialFoom = Foom
+  { _foomStatus   = Offline
+  , _foomProgress = 0
+  }
+
+data FoomStatus
+  = Offline
+  | Booting
+  | Calibrating
+  deriving (Eq, Ord, Show, Enum, Bounded)
+
 -- *** Player-owned things
 
 -- | Think of the children!
@@ -188,6 +208,7 @@ instance Component Direction where
 makeLenses ''Window
 makeLenses ''Score
 
+makeLenses ''Foom
 makeLenses ''City
 makeLenses ''Silo
 makeLenses ''Intercept

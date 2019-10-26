@@ -5,32 +5,25 @@ module Scene.Intro
   , onTick
   ) where
 
-import Control.Lens hiding (set)
 import Debug.Trace (traceM)
 
-import Apecs (cmap, global, newEntity, ($=))
+import Apecs (global, ($=))
 import Apecs.Gloss (Event(..), Key(..), KeyState(..), SpecialKey(..))
 
 -- import qualified Apecs as Entity
 
-import Scene.Intro.Components
 import World.Components (Scene(..), Time(..))
 import World (SystemW)
 
 import Scene.Intro.Draw (draw)
 
 import qualified Scene.Gameplay
+import qualified Utils.Debug as Debug
 
 initialize :: SystemW ()
 initialize = do
   traceM "Intro: initialize"
-
-  _ <- newEntity IntroState
-    { _isOffset = 0
-    , _isScaleX = 0.16
-    , _isScaleY = 0.12
-    }
-
+  Debug.newMeasure_
   global $= (Intro, Time 0)
 
 onTick :: Float -> SystemW ()
@@ -44,19 +37,9 @@ onInput = \case
       SpecialKey KeyEsc ->
         -- XXX: prevent flash of gameplay before quit
         pure ()
-      Char 'q' ->
-        cmap $ isOffset +~ -2
-      Char 'e' ->
-        cmap $ isOffset +~ 2
-      Char 'w' ->
-        cmap $ isScaleY +~ 0.01
-      Char 's' ->
-        cmap $ isScaleY -~ 0.01
-      Char 'a' ->
-        cmap $ isScaleX -~ 0.01
-      Char 'd' ->
-        cmap $ isScaleX +~ 0.01
-      _ ->
+      SpecialKey KeySpace ->
         Scene.Gameplay.initialize
+      _ ->
+        Debug.measureOnKey key
   _ ->
     pure ()
