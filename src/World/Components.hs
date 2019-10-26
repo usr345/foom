@@ -26,10 +26,18 @@ initialFoom = Foom
   }
 
 data FoomStatus
+  -- Transition from load scene
   = Offline
+  -- Intro
   | Booting
+  -- Transition from intro scene
+  | Activating
+  -- Gameplay
   | Calibrating
-  deriving (Eq, Ord, Show, Enum, Bounded)
+  | Ready
+  -- Outro
+  | Complete
+  deriving (Eq, Ord, Show)
 
 -- *** Player-owned things
 
@@ -202,6 +210,13 @@ newtype Direction = Direction Float
 
 instance Component Direction where
   type Storage Direction = Map Direction
+
+-- | Full-screen shade for fade effects.
+newtype Shade = Shade Float
+  deriving (Eq, Ord, Show)
+
+instance Component Shade where
+  type Storage Shade = Unique Shade
 
 -- * Lenses
 

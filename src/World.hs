@@ -18,6 +18,7 @@ makeWorld "World"
   [ ''Camera
   , ''Cursor
   , ''Window
+  , ''Shade
   , ''Time
 
   , ''Scene

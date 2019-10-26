@@ -13,6 +13,6 @@ initialize :: SystemW ()
 initialize = do
   void $ newEntity (Window 0 0)
   void $ newEntity Cursor
-  void $ newEntity initialFoom
+  void $ newEntity (Shade 1.0)
 
   Load.initialize
