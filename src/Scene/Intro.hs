@@ -5,64 +5,38 @@ module Scene.Intro
   , onTick
   ) where
 
-import Control.Lens
+import Control.Lens ((&), (.~))
 import Control.Monad (void)
 import Debug.Trace (traceM)
 
-import Apecs (cmap, cmapM, global, newEntity, ($=))
-import Apecs.Gloss (Event(..), Key(..), KeyState(..), SpecialKey(..))
+import Apecs (cmap, global, newEntity, ($=))
+import Apecs.Gloss (Event(..), KeyState(..), withGreen, black)
+import Linear.V2 (V2(..))
 
 -- import qualified Apecs as Entity
 
-import World.Components -- (Scene(..), Shade(..), Time(..), initialFoom, foomProgress)
+import Scene.Intro.Components (HoloScreen(..))
+import World.Components
 import World (SystemW)
 
 import Scene.Intro.Draw (draw)
+import Scene.Intro.Tick (onTick)
 
-import qualified Scene.Gameplay
-import qualified Utils.Debug as Debug
+-- import qualified Utils.Debug as Debug
 
 initialize :: SystemW ()
 initialize = do
   traceM "Intro: initialize"
-  Debug.newMeasure_
+  -- Debug.newMeasure_
   void $ newEntity initialFoom
+  void $ newEntity HoloScreen
+    { _hsColor = withGreen 0.75 black
+    , _hsOpen  = 0
+    , _hsPos   = 0
+    , _hsSize  = V2 800 600
+    }
+
   global $= (Intro, Time 0)
-
-onTick :: Float -> SystemW ()
-onTick dt = do
-  cmap $ \(Shade opaq) ->
-    if opaq - dt <= 0 then
-      Nothing
-    else
-      Just . Shade $ max 0 (opaq - dt)
-
-  cmapM $ \f@Foom{..} -> do
-    let
-      progSpeed =
-        case _foomStatus of
-          Booting ->
-            10
-          _ ->
-            90
-
-      prog = min 100 $ (f ^. foomProgress) + dt * progSpeed
-
-    if prog < 100 then
-      pure $ f
-        & foomProgress .~ prog
-    else
-      case f ^. foomStatus of
-        Offline ->
-          pure $ f
-            & foomStatus .~ Booting
-            & foomProgress .~ 0
-        Booting ->
-          pure $ f
-            & foomStatus .~ Activating
-            & foomProgress .~ 0
-        _activated ->
-          f <$ Scene.Gameplay.initialize
 
 onInput :: Event -> SystemW ()
 onInput = \case
@@ -71,10 +45,6 @@ onInput = \case
       & foomStatus .~ Activating
       & foomProgress .~ 0
 
-    -- case key of
-    --   SpecialKey KeyEsc ->
-    --     -- XXX: prevent flash of gameplay before quit
-    --     pure ()
     --   SpecialKey KeySpace ->
     --     Scene.Gameplay.initialize
     --   _ ->

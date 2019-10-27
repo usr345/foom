@@ -33,7 +33,9 @@ data FoomStatus
   -- Transition from intro scene
   | Activating
   -- Gameplay
+  | Recovering
   | Calibrating
+  | Assessment
   | Ready
   -- Outro
   | Complete

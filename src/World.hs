@@ -8,8 +8,9 @@ import Control.Monad.Reader (asks)
 import Apecs (Has(..), Storage, SystemT(..), explInit, makeWorld)
 import Apecs.Gloss (Camera)
 
-import World.Components -- TODO: qualify
--- import qualified Scene.Intro.Components as Intro
+import World.Components -- TODO: qualify?
+
+import qualified Scene.Intro.Components as Intro
 import qualified Utils.Debug as Debug
 
 -- * The world
@@ -23,6 +24,9 @@ makeWorld "World"
 
   , ''Scene
   , ''Foom
+
+  , ''Intro.HoloScreen
+  , ''Intro.HoloRay
 
   , ''Score
 

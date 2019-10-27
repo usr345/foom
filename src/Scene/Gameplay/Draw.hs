@@ -7,6 +7,7 @@ import Linear.V2 (V2(..))
 
 import qualified Apecs as Entity
 
+import Utils.Draw (textLines)
 import World.Components
 import World (SystemW)
 
@@ -24,6 +25,7 @@ draw = do
   blasts <- foldDraw drawBlast
 
   cursor <- foldDraw drawCursor
+  topMsg <- foldDraw drawTopMsg
   score <- foldDraw drawScore
 
   let
@@ -39,7 +41,7 @@ draw = do
 
     ui = mconcat
       [ color red $ rectangleWire 800 600
-      , color blue $ rectangleWire 1600 900
+      , topMsg
       , score
       , cursor
       ]
@@ -178,6 +180,17 @@ drawCursor (_, Position cur@(V2 curX curY)) =
         circle 4
   else
     mempty
+
+drawTopMsg :: Foom -> Picture
+drawTopMsg Foom{..} =
+  translate (-400) 376 . scale 0.16 0.12 .
+    color (withGreen 0.66 black) $
+      textLines
+        [ "Force Operations"
+        , "Ordnance Mangement: " <> show _foomStatus
+        , ""
+        , ""
+        ]
 
 drawScore :: Score -> Picture
 drawScore Score{..} = mconcat
