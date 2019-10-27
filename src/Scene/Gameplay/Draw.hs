@@ -186,11 +186,12 @@ drawTopMsg Foom{..} =
   translate (-400) 376 . scale 0.16 0.12 .
     color (withGreen 0.66 black) $
       textLines
-        [ "Force Operations"
-        , "Ordnance Mangement: " <> show _foomStatus
-        , ""
-        , ""
-        ]
+        $ "Force Operations"
+        : "Ordnance Management: " <> show _foomStatus
+        : foomMessages
+  where
+    foomMessages =
+      []
 
 drawScore :: Score -> Picture
 drawScore Score{..} = mconcat

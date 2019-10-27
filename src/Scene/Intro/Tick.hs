@@ -2,9 +2,8 @@ module Scene.Intro.Tick where
 
 import Control.Lens
 import Control.Monad (void, when)
-import System.Random (randomRIO)
 
-import Apecs (cmap, cmapM, cmapM_, liftIO, newEntity)
+import Apecs (cmap, cmapM, cmapM_, newEntity)
 import Apecs.Gloss (green)
 import Linear.V2 (V2(..))
 
@@ -72,5 +71,6 @@ onTick dt = do
           pure $ f
             & foomStatus .~ Activating
             & foomProgress .~ 0
-        _activated ->
-          f <$ Scene.Gameplay.initialize
+        _activated -> do
+          Scene.Gameplay.initialize
+          pure $ f & foomStatus .~ Recovering
