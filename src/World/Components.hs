@@ -1,7 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE StrictData #-}
 
-module Component where
+module World.Components where
 
 import Apecs (Component(..), Global, Map, Unique)
 import Control.Lens (makeLenses, makePrisms)
@@ -10,6 +10,36 @@ import Linear.V2 (V2(..))
 -- * Components
 
 -- ** Game domain
+
+data Foom = Foom
+  { _foomStatus   :: FoomStatus
+  , _foomProgress :: Float
+  } deriving (Show)
+
+instance Component Foom where
+  type Storage Foom = Unique Foom
+
+initialFoom :: Foom
+initialFoom = Foom
+  { _foomStatus   = Offline
+  , _foomProgress = 0
+  }
+
+data FoomStatus
+  -- Transition from load scene
+  = Offline
+  -- Intro
+  | Booting
+  -- Transition from intro scene
+  | Activating
+  -- Gameplay
+  | Recovering
+  | Calibrating
+  | Assessment
+  | Ready
+  -- Outro
+  | Complete
+  deriving (Eq, Ord, Show)
 
 -- *** Player-owned things
 
@@ -183,11 +213,19 @@ newtype Direction = Direction Float
 instance Component Direction where
   type Storage Direction = Map Direction
 
+-- | Full-screen shade for fade effects.
+newtype Shade = Shade Float
+  deriving (Eq, Ord, Show)
+
+instance Component Shade where
+  type Storage Shade = Unique Shade
+
 -- * Lenses
 
 makeLenses ''Window
 makeLenses ''Score
 
+makeLenses ''Foom
 makeLenses ''City
 makeLenses ''Silo
 makeLenses ''Intercept

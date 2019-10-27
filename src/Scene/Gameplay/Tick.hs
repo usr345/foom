@@ -14,7 +14,7 @@ import Linear.Metric (normalize)
 
 import qualified Apecs as Entity
 
-import Component
+import World.Components
 import World (SystemW)
 
 onTick :: Float -> SystemW ()

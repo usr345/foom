@@ -1,11 +1,14 @@
 module Scene.Gameplay.Draw where
 
-import Apecs
+import Apecs (global)
 import Apecs.Gloss
 import Control.Lens hiding (set)
 import Linear.V2 (V2(..))
 
-import Component
+import qualified Apecs as Entity
+
+import Utils.Draw (textLines)
+import World.Components
 import World (SystemW)
 
 draw :: SystemW Picture
@@ -22,6 +25,7 @@ draw = do
   blasts <- foldDraw drawBlast
 
   cursor <- foldDraw drawCursor
+  topMsg <- foldDraw drawTopMsg
   score <- foldDraw drawScore
 
   let
@@ -37,7 +41,7 @@ draw = do
 
     ui = mconcat
       [ color red $ rectangleWire 800 600
-      , color blue $ rectangleWire 1600 900
+      , topMsg
       , score
       , cursor
       ]
@@ -46,7 +50,7 @@ draw = do
 
 drawTerrain :: SystemW Picture
 drawTerrain = do
-  score <- get global
+  score <- Entity.get global
   let
     hits = fromIntegral $ score ^. groundHits
     greyish = greyN . max 0.1 $ 1 - sqrt hits / 10
@@ -176,6 +180,18 @@ drawCursor (_, Position cur@(V2 curX curY)) =
         circle 4
   else
     mempty
+
+drawTopMsg :: Foom -> Picture
+drawTopMsg Foom{..} =
+  translate (-400) 376 . scale 0.16 0.12 .
+    color (withGreen 0.66 black) $
+      textLines
+        $ "Force Operations"
+        : "Ordnance Management: " <> show _foomStatus
+        : foomMessages
+  where
+    foomMessages =
+      []
 
 drawScore :: Score -> Picture
 drawScore Score{..} = mconcat

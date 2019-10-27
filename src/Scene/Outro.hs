@@ -6,16 +6,17 @@ import System.Exit (exitSuccess)
 import Apecs (global, liftIO, ($=))
 import Apecs.Gloss (Event, Picture)
 
-import Component (Scene(..))
+import World.Components (Scene(..), Time(..))
 import World (SystemW)
 
 initialize :: SystemW ()
 initialize = do
   traceM "Outro: initialize"
-  global $= Outro
+  global $= (Outro, Time 0)
 
 draw :: SystemW Picture
 draw =
+  -- TODO: fade out or something
   pure mempty
 
 onTick :: Float -> SystemW ()

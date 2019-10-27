@@ -12,7 +12,7 @@ import Debug.Trace (traceM)
 import Apecs (global, newEntity, ($=))
 import Linear.V2 (V2(..))
 
-import Component
+import World.Components
 import Scene.Gameplay.Draw (draw)
 import Scene.Gameplay.Tick (onTick)
 import Scene.Gameplay.Input (onInput)
@@ -21,7 +21,7 @@ import World (SystemW)
 initialize :: SystemW ()
 initialize = do
   traceM "Gameplay: initialize"
-  global $= Gameplay
+  global $= (Gameplay, Time 0)
 
   void $ newEntity emptyScore
 
