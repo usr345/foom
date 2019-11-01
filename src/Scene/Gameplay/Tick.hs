@@ -6,7 +6,8 @@ import Data.Foldable (for_)
 import Data.Proxy (Proxy(..))
 import System.Random (randomRIO)
 
-import Apecs (Not(..), cfold, cmap, cmapM_, global, newEntity)
+import Apecs (Not(..), global, newEntity, ($~))
+import Apecs.System (cfold, cmap, cmapIf, cmapM_)
 import Control.Lens ((&), (^.), (.~), (+~))
 import Linear.V2 (V2(..))
 import Linear.Affine (distanceA)
@@ -67,23 +68,55 @@ interceptorBlast =
       Right ()
 
 interceptorHit :: SystemW ()
-interceptorHit =
+interceptorHit = do
   cmapM_ $ \(b, Position bp) -> do
-    cmapM_ $ \(Missile{}, Position mp, missile) ->
-      if distanceA mp bp <= 20 + (b ^. blastTimer) * 4 then do
+    cmapM_ $ \(Missile{}, Position mp, missile) -> do
+      let
+        hitDist = distanceA mp bp - 20 + (b ^. blastTimer) * 4
+        accuracy =
+          if hitDist <= 0 then
+            1 - hitDist / 20
+          else
+            0
+      if accuracy > 0 then do
         Entity.destroy missile $ Proxy @(Missile, Position, Velocity)
         cmap $ interceptorHits +~ 1
         cmap $ siloStockpile +~ 1
+        cmapIf ((== Calibrating) . _foomStatus) $
+          foomProgress +~ accuracy
       else
         pure ()
 
-    cmapM_ $ \(MIRV{}, Position mp, mirv) ->
-      if distanceA mp bp <= 20 + (b ^. blastTimer) * 4 then do
+    cmapM_ $ \(MIRV{}, Position mp, mirv) -> do
+      let
+        hitDist = distanceA mp bp - 20 + (b ^. blastTimer) * 4
+        accuracy =
+          if hitDist <= 0 then
+            1 - hitDist / 20
+          else
+            0
+      if accuracy > 0 then do
         Entity.destroy mirv $ Proxy @(MIRV, Position, Velocity)
         cmap $ interceptorHits +~ 1
         cmap $ siloStockpile +~ 1
+        cmapIf ((== Calibrating) . _foomStatus) $
+          foomProgress +~ accuracy
       else
         pure ()
+
+  cmapM_ $ \Score{_interceptorHits} ->
+    cmapM_ $ \(Foom{..}, foom) ->
+      case _foomStatus of
+        Recovering ->
+          when (_interceptorHits >= 2) $ do
+            foom $~ foomStatus .~ Calibrating
+            foom $~ foomProgress .~ 0.0
+        Calibrating  ->
+          when (_foomProgress >= 100) $ do
+            foom $~ foomStatus .~ Assessment
+            foom $~ foomProgress .~ 0.0
+        _ ->
+          pure ()
 
 launchMissiles :: SystemW ()
 launchMissiles = do
@@ -136,21 +169,52 @@ missileHit =
   cmapM_ $ \(Missile{}, Position mp@(V2 _mx my), m) ->
     when (my <= 0) $ do
       Entity.modify global $ groundHits +~ 1
+      cmapIf ((== Assessment) . _foomStatus) $
+        foomProgress +~ 0.5
 
-      cmapM_ $ \(City ruined, Position cp, c) ->
-        when (not ruined && distanceA mp cp <= 35) $ do
+      cmapM_ $ \(City ruined, Position cp, c) -> do
+        let
+          hitDist = distanceA mp cp
+          accuracy =
+            if hitDist <= 35 then
+              35 - hitDist
+            else
+              0
+
+        when (not ruined && accuracy > 0) $ do
           Entity.modify global $ cityHits +~ 1
           Entity.modify c $ cityRuined .~ True
+          cmapIf ((== Assessment) . _foomStatus) $
+            foomProgress +~ accuracy
 
-      cmapM_ $ \(Silo ammo, Position sp, s) ->
-        when (distanceA mp sp <= 35) $ do
+      cmapM_ $ \(Silo ammo, Position sp, s) -> do
+        let
+          hitDist = distanceA mp sp
+          accuracy =
+            if hitDist <= 35 then
+              35 - hitDist
+            else
+              0
+
+        when (accuracy > 0) $ do
           Entity.modify global $ siloHits +~ 1
           Entity.modify s $ siloStockpile .~
             max 0 (truncate @Float $ fromIntegral ammo / 2)
+          cmapIf ((== Assessment) . _foomStatus) $
+            foomProgress +~ accuracy
 
       Entity.destroy m $ Proxy @Missile
       Entity.set m $ Blast BlastGrowing 0
       Entity.set m $ Velocity $ V2 0 25
+
+      cmapM_ $ \(Foom{..}, foom) ->
+        when (_foomProgress >= 100) $
+          case _foomStatus of
+            Assessment -> do
+              foom $~ foomStatus .~ Ready
+              foom $~ foomProgress .~ 0.0
+            _ ->
+              pure ()
 
 mirvSplitup :: SystemW ()
 mirvSplitup =

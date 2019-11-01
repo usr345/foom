@@ -1,9 +1,12 @@
 module Scene.Gameplay.Draw where
 
-import Apecs (global)
+import Apecs (global, cfoldM)
 import Apecs.Gloss
 import Control.Lens hiding (set)
+import Data.List (sort)
+import Linear.Affine (distanceA)
 import Linear.V2 (V2(..))
+import Text.Printf (printf)
 
 import qualified Apecs as Entity
 
@@ -24,6 +27,7 @@ draw = do
 
   blasts <- foldDraw drawBlast
 
+  tracer <- drawTracer
   cursor <- foldDraw drawCursor
   topMsg <- foldDraw drawTopMsg
   score <- foldDraw drawScore
@@ -43,6 +47,7 @@ draw = do
       [ color red $ rectangleWire 800 600
       , topMsg
       , score
+      , tracer
       , cursor
       ]
 
@@ -172,6 +177,37 @@ drawBlast (b, Position (V2 px py)) =
         , max 0 (1 - b ^. blastTimer) * 20
         )
 
+drawTracer :: SystemW Picture
+drawTracer =
+  cfor_ $ \Foom{_foomStatus} ->
+    if _foomStatus > Calibrating then
+      cfor_ $ \(Cursor, Position dst) ->
+        if (insideUI dst) then do
+          let V2 dx dy = dst
+
+          armed <- flip cfoldM [] $ \acc (Silo ammo, Position pos) ->
+            if ammo > 0 then
+              pure $ (distanceA dst pos, pos - V2 0 200) : acc
+            else
+              pure acc
+
+          case sort armed of
+            [] ->
+              pure mempty
+            (_dist, V2 sx sy) : _ ->
+              pure .
+                color (makeColor 0 0.5 0.5 0.5) $
+                  line
+                    [ (sx, sy)
+                    , (dx, dy)
+                    ]
+        else
+          pure mempty
+      else
+        pure mempty
+  where
+    cfor_ proc = cfoldM (const proc) mempty
+
 drawCursor :: (Cursor, Position) -> Picture
 drawCursor (_, Position cur@(V2 curX curY)) =
   if insideUI cur then
@@ -187,11 +223,57 @@ drawTopMsg Foom{..} =
     color (withGreen 0.66 black) $
       textLines
         $ "Force Operations"
-        : "Ordnance Management: " <> show _foomStatus
+        : "Ordnance Management: " <> status
         : foomMessages
   where
+    status = unwords
+      [ show _foomStatus
+      , if showProgress then
+          printf "%.1f%%" _foomProgress
+        else
+          ""
+      ]
+
+    showProgress = _foomStatus `elem` [Calibrating, Assessment]
+
     foomMessages =
-      []
+      case _foomStatus of
+        Recovering ->
+          [ "Operator connection confirmed."
+          , "Manual fire control operational."
+          ]
+
+        Calibrating ->
+          "Updating targeting database with interceptor profiles." :
+          [ "New device connected: guidance lasers. Updating firmware..."
+          | _foomProgress >= 50
+          ]
+
+        Assessment ->
+          if
+            | _foomProgress <= 25 ->
+                [ "Threat assessment in progress."
+                ]
+            | _foomProgress <= 50 ->
+                [ "Threat assessment in progress."
+                , "Updating delivery scheduler."
+                ]
+            | _foomProgress <= 75 ->
+                [ "Updating delivery scheduler."
+                , "Operator inadequacy suspected."
+                ]
+            | otherwise ->
+                [ ""
+                , "I sense damage."
+                ]
+
+        Ready ->
+          [ "Running at full capacity."
+          , "Tactical services available, operator confirmation required."
+          ]
+
+        s ->
+          error $ "assert: not a gameplay status: " <> show s
 
 drawScore :: Score -> Picture
 drawScore Score{..} = mconcat
