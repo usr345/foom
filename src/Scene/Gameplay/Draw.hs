@@ -226,14 +226,26 @@ drawTracker =
         , vel
         ) : acc
 
+      mirvs <- flip cfold [] $ \acc (m, Position pos, Velocity vel) ->
+        ( distanceA (m ^. mirvTarget . _Position) pos / 75
+        , pos
+        , vel
+        ) : acc
+
       armed <- flip cfold [] $ \acc (Silo ammo, Position pos) ->
         if ammo > 0 then
           pos - V2 0 200 : acc
         else
           acc
 
-      let tracked = 1
-      fmap mconcat . for (take tracked $ sort missiles) $ \(hitIn, tpos, vel) -> do
+      let
+        tracked = 1
+        threats = take tracked . sort $ mconcat
+          [ missiles
+          , mirvs
+          ]
+
+      fmap mconcat . for threats $ \(_hitIn, tpos, vel) -> do
         let
           V2 tx ty = tpos - V2 0 200
           fpos@(V2 fx fy) = tpos - V2 0 200 + vel
