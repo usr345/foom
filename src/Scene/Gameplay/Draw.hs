@@ -1,21 +1,22 @@
 module Scene.Gameplay.Draw where
 
-import Apecs (global, cfold, cfoldM)
+import Apecs (global, cfold)
 import Apecs.Gloss
-import Control.Lens hiding (set)
+import Control.Lens hiding (ix, set)
 import Data.List (sort)
 import Data.Traversable (for)
 import Linear.Affine (distanceA)
 import Linear.Metric (normalize)
 import Linear.V2 (V2(..))
-import Linear.Vector ((^/), (^*))
+import Linear.Vector ((^*))
 import Text.Printf (printf)
 
 import qualified Apecs as Entity
 
 import Utils.Draw (textLines)
+import Utils.System (cfor_)
 import World.Components
-import World (World, SystemW)
+import World (SystemW)
 
 draw :: SystemW Picture
 draw = do
@@ -211,11 +212,6 @@ drawTracer =
       else
         pure mempty
 
-cfor_
-  :: _ -- (Entity.Has World IO c, Monoid a)
-  => (c -> SystemW a) -> SystemW a
-cfor_ proc = cfoldM (const proc) mempty
-
 drawTracker :: SystemW Picture
 drawTracker =
   cfor_ $ \Foom{_foomStatus} ->
@@ -248,7 +244,7 @@ drawTracker =
       fmap mconcat . for threats $ \(_hitIn, tpos, vel) -> do
         let
           V2 tx ty = tpos - V2 0 200
-          fpos@(V2 fx fy) = tpos - V2 0 200 + vel
+          fpos@(V2 _fx _fy) = tpos - V2 0 200 + vel
           closest = sort $ do
             spos <- armed
             pure (distanceA fpos spos / 250, spos)
