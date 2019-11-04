@@ -1,18 +1,21 @@
 module Scene.Gameplay.Draw where
 
-import Apecs (global, cfoldM)
+import Apecs (global, cfold, cfoldM)
 import Apecs.Gloss
 import Control.Lens hiding (set)
 import Data.List (sort)
+import Data.Traversable (for)
 import Linear.Affine (distanceA)
+import Linear.Metric (normalize)
 import Linear.V2 (V2(..))
+import Linear.Vector ((^/), (^*))
 import Text.Printf (printf)
 
 import qualified Apecs as Entity
 
 import Utils.Draw (textLines)
 import World.Components
-import World (SystemW)
+import World (World, SystemW)
 
 draw :: SystemW Picture
 draw = do
@@ -28,6 +31,7 @@ draw = do
   blasts <- foldDraw drawBlast
 
   tracer <- drawTracer
+  tracker <- drawTracker
   cursor <- foldDraw drawCursor
   topMsg <- foldDraw drawTopMsg
   score <- foldDraw drawScore
@@ -48,6 +52,7 @@ draw = do
       , topMsg
       , score
       , tracer
+      , tracker
       , cursor
       ]
 
@@ -185,11 +190,11 @@ drawTracer =
         if (insideUI dst) then do
           let V2 dx dy = dst
 
-          armed <- flip cfoldM [] $ \acc (Silo ammo, Position pos) ->
+          armed <- flip cfold [] $ \acc (Silo ammo, Position pos) ->
             if ammo > 0 then
-              pure $ (distanceA dst pos, pos - V2 0 200) : acc
+              (distanceA dst pos, pos - V2 0 200) : acc
             else
-              pure acc
+              acc
 
           case sort armed of
             [] ->
@@ -205,8 +210,60 @@ drawTracer =
           pure mempty
       else
         pure mempty
-  where
-    cfor_ proc = cfoldM (const proc) mempty
+
+cfor_
+  :: _ -- (Entity.Has World IO c, Monoid a)
+  => (c -> SystemW a) -> SystemW a
+cfor_ proc = cfoldM (const proc) mempty
+
+drawTracker :: SystemW Picture
+drawTracker =
+  cfor_ $ \Foom{_foomStatus} ->
+    if _foomStatus > Assessment then do
+      missiles <- flip cfold [] $ \acc (m, Position pos, Velocity vel) ->
+        ( distanceA (m ^. missileTarget . _Position) pos / 75
+        , pos
+        , vel
+        ) : acc
+
+      armed <- flip cfold [] $ \acc (Silo ammo, Position pos) ->
+        if ammo > 0 then
+          pos - V2 0 200 : acc
+        else
+          acc
+
+      let tracked = 1
+      fmap mconcat . for (take tracked $ sort missiles) $ \(hitIn, tpos, vel) -> do
+        let
+          V2 tx ty = tpos - V2 0 200
+          fpos@(V2 fx fy) = tpos - V2 0 200 + vel
+          closest = sort $ do
+            spos <- armed
+            pure (distanceA fpos spos / 250, spos)
+
+          tracks = mconcat $ do
+            (intIn, V2 _sx _sy) <- take 1 closest
+            let V2 ix iy = normalize vel ^* (intIn * 75)
+            pure $
+              color (withAlpha 0.5 cyan) .
+                translate (tx + ix) (ty + iy) $
+                  circle (intIn * 10)
+                -- XXX: debug tracing
+                -- line [ (sx, sy), (tx + ix, ty + iy) ] <>
+                -- (translate fx fy $
+                --   scale 0.2 0.2 .
+                --     text $ printf "%0.1f" intIn
+                -- )
+        pure tracks
+        -- XXX: debug tracing
+        -- let V2 vx vy = vel
+        -- pure . mappend tracks $
+        --   translate tx ty $
+        --     color (withAlpha 0.5 orange) $
+        --       line [ (0, 0), (vx, vy) ] <>
+        --       scale 0.2 0.2 (text $ printf "%.1f" (hitIn + 1))
+    else
+      pure mempty
 
 drawCursor :: (Cursor, Position) -> Picture
 drawCursor (_, Position cur@(V2 curX curY)) =
