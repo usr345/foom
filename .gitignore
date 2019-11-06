@@ -1,3 +1,5 @@
 .stack-work/
 *.cabal
 *~
+AppDir_*/
+*.AppImage
