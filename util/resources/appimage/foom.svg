@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="256px"
+   height="256px"
+   viewBox="0 0 256 256"
+   version="1.1"
+   id="SVGRoot"
+   inkscape:version="0.92.4 (5da689c313, 2019-01-14)"
+   sodipodi:docname="foom.svg">
+  <defs
+     id="defs3713" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="2.8284271"
+     inkscape:cx="95.453404"
+     inkscape:cy="81.795489"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     inkscape:window-width="1920"
+     inkscape:window-height="1016"
+     inkscape:window-x="0"
+     inkscape:window-y="27"
+     inkscape:window-maximized="1"
+     inkscape:grid-bbox="true" />
+  <metadata
+     id="metadata3716">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Calque 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <rect
+       id="rect3740"
+       width="249.28249"
+       height="250.28249"
+       x="3.358757"
+       y="2.858757"
+       style="opacity:1;stroke-width:0.1;stroke-miterlimit:4;stroke-dasharray:none" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:102.67569733px;line-height:1.25;font-family:'Noto Mono';-inkscape-font-specification:'Noto Mono, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#55d400;fill-opacity:1;stroke:none;stroke-width:1.06953895"
+       x="13.685932"
+       y="100.93258"
+       id="text3736"
+       transform="scale(0.91346724,1.09473)"><tspan
+         sodipodi:role="line"
+         id="tspan3734"
+         x="13.685932"
+         y="100.93258"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:102.67569733px;font-family:'Noto Mono';-inkscape-font-specification:'Noto Mono, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;fill:#55d400;fill-opacity:1;stroke-width:1.06953895">FOOM</tspan></text>
+    <path
+       style="fill:#00ffff;stroke:#01a6ff;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="M 16.970563,246.10051 88.741903,202.967"
+       id="path4547"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc" />
+    <path
+       style="fill:#00ffff;stroke:#ff0101;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="M 68.94291,156.29794 21.566751,130.13499"
+       id="path4547-9"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc" />
+    <path
+       style="fill:#00ffff;stroke:#ff0101;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 148.13887,223.11954 63.63961,-95.45942"
+       id="path4547-9-3"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc" />
+    <circle
+       style="opacity:1;fill:#000202;fill-opacity:1;stroke:#ff0101;stroke-width:1;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="path4587"
+       cx="148.13887"
+       cy="223.11954"
+       r="5.8804598" />
+    <circle
+       style="opacity:1;fill:#000202;fill-opacity:1;stroke:#ff0101;stroke-width:1;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="path4587-7"
+       cx="68.96804"
+       cy="156.33714"
+       r="5.8804598" />
+    <circle
+       style="opacity:1;fill:#000202;fill-opacity:1;stroke:#01a6ff;stroke-width:1;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="path4587-7-8"
+       cx="88.741898"
+       cy="203.90633"
+       r="5.8804598" />
+  </g>
+</svg>
