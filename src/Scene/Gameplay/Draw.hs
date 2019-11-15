@@ -66,13 +66,14 @@ drawTerrain = do
   let
     hits = fromIntegral $ score ^. groundHits
     greyish = greyN . max 0.1 $ 1 - sqrt hits / 10
+    greenIsh = makeColor 0.2 0.75 0 1
     brown = makeColorI 139 69 19 255
 
     groundColor = if
       | hits == 0 ->
-          green
+          greenIsh
       | hits <= 15 ->
-          mixColors (1.0 - hits / 15) (hits / 15) green brown
+          mixColors (1.0 - hits / 15) (hits / 15) greenIsh brown
       | hits <= 30 ->
           mixColors (1.0 - (hits - 15) / 15) ((hits - 15) / 15) brown greyish
       | otherwise ->
@@ -101,7 +102,8 @@ drawSilo :: (Silo, Position) -> Picture
 drawSilo (Silo ammo, Position (V2 px py)) =
   translate px py $ mconcat
     [ color col $
-        rectangleSolid 30 10
+        scale 1.0 0.5 $
+          arcSolid 0 180 15
     , color cyan $
         translate (-40) 30 . scale 0.33 0.17 $
           text (show ammo)
@@ -109,10 +111,11 @@ drawSilo (Silo ammo, Position (V2 px py)) =
   where
     col =
       if ammo > 0 then
-        red
+        someRed
       else
         darkRed
 
+    someRed = makeColor 0.8 0 0 1.0
     darkRed = makeColor 0.3 0 0 1.0
 
 drawIntercept :: (Intercept, Position) -> Picture
