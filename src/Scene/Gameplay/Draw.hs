@@ -31,6 +31,7 @@ draw = do
 
   blasts <- foldDraw drawBlast
 
+  theScreen <- foldDraw drawScreen
   tracer <- drawTracer
   tracker <- drawTracker
   cursor <- foldDraw drawCursor
@@ -49,7 +50,7 @@ draw = do
       ]
 
     ui = mconcat
-      [ color red $ rectangleWire 800 600
+      [ theScreen
       , topMsg
       , score
       , tracer
@@ -272,6 +273,54 @@ drawTracker =
         --       scale 0.2 0.2 (text $ printf "%.1f" (hitIn + 1))
     else
       pure mempty
+
+drawScreen :: Window -> Picture
+drawScreen Window{..} = blinds <> edges
+  where
+    blinds = mconcat
+      [ polygon
+          [ (rightX, topY)
+          , (rightIshX, topY)
+          , (rightIshX, botY)
+          , (rightX, botY)
+          ]
+      , polygon
+          [ (leftX, topY)
+          , (leftIshX, topY)
+          , (leftIshX, botY)
+          , (leftX, botY)
+          ]
+      , polygon
+          [ (leftIshX, topY)
+          , (rightIshX, topY)
+          , (rightIshX, topIshY)
+          , (leftIshX, topIshY)
+          ]
+      , polygon
+          [ (leftIshX, botY)
+          , (rightIshX, botY)
+          , (rightIshX, botIshY)
+          , (leftIshX, botIshY)
+          ]
+      ]
+
+    edges = color red $
+      rectangleWire uiScreenWidth uiScreenHeight
+
+    uiScreenWidth = 800
+    uiScreenHeight = 600
+
+    topY = fromIntegral _screenHeight / 2
+    topIshY = uiScreenHeight / 2
+
+    botY = negate topY
+    botIshY = negate topIshY
+
+    rightX = fromIntegral _screenWidth / 2
+    rightIshX = uiScreenWidth / 2
+
+    leftX = negate rightX
+    leftIshX = negate rightIshX
 
 drawCursor :: (Cursor, Position) -> Picture
 drawCursor (_, Position cur@(V2 curX curY)) =
