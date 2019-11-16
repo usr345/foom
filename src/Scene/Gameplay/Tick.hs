@@ -160,19 +160,21 @@ launchMIRV = do
       ox <- randomUIx 0
       let o@(V2 _ oy) = V2 ox 300 + V2 0 (Config.groundLevelShift configuration)
 
-      tx <- randomUIx (1.5 * (Config._MIRVSpread configuration))
+      nHeads <- liftIO $ randomRIO ((Config._MIRVMinHeads configuration), (Config._MIRVMaxHeads configuration))
+      spread <- liftIO $ randomRIO ((Config._MIRVMinSpread configuration), (Config._MIRVMaxSpread configuration))
+
+      tx <- randomUIx (fromIntegral nHeads * spread)
       let t = V2 tx 0
 
       fuse <- liftIO $ randomRIO (0.33, 0.66)
       let m = V2 (ox * fuse + tx * (1 - fuse)) (oy * fuse)
 
-      nHeads <- liftIO $ randomRIO (2, 5)
       void $ newEntity
         ( MIRV
             { _mirvOrigin = Position o
             , _mirvSplit  = Position m
             , _mirvTarget = Position t
-            , _mirvSpread = 50
+            , _mirvSpread = spread * fromIntegral nHeads
             , _mirvHeads = nHeads
             }
         , Position o
@@ -238,10 +240,10 @@ mirvRetarget mirv = do
     pure $ Position (V2 rx ty)
   where
     V2 tx ty = mirv ^. mirvTarget . _Position
-    s = (Config._MIRVSpread configuration)
+    s = mirv ^. mirvSpread
     c = tx - s
     n :: Float
-    n = fromIntegral $ (Config._MIRVHeads configuration)
+    n = fromIntegral $ mirv ^. mirvHeads
 
 
 mirvSplitup :: SystemW ()

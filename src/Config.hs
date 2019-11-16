@@ -14,8 +14,10 @@ data Config = Config{
   , horizontalSpan :: Float
   , verticalSpan :: Float
   , groundLevelShift :: Float
-  , _MIRVSpread :: Float
-  , _MIRVHeads :: Int
+  , _MIRVMinSpread :: Float
+  , _MIRVMaxSpread :: Float
+  , _MIRVMinHeads :: Int
+  , _MIRVMaxHeads :: Int
                     }
 
 configuration :: Config
@@ -39,6 +41,8 @@ configuration = Config
   , groundLevelShift = 200
   , chanceMIRV = 60 * 5
   , chanceMissile = 60 * 5
-  , _MIRVSpread = 50
-  , _MIRVHeads = 4
+  , _MIRVMinSpread = 10
+  , _MIRVMaxSpread = 15
+  , _MIRVMinHeads = 2
+  , _MIRVMaxHeads = 5
   }
