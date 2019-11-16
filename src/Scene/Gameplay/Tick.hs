@@ -10,8 +10,10 @@ import Apecs (Not(..), global, newEntity, ($~))
 import Apecs.System (cfold, cmap, cmapIf, cmapM_)
 import Control.Lens ((&), (^.), (.~), (+~))
 import Linear.V2 (V2(..))
+import Linear ((^*))
 import Linear.Affine (distanceA)
 import Linear.Metric (normalize)
+import Config
 
 import qualified Apecs as Entity
 
@@ -58,7 +60,7 @@ interceptorBlast :: SystemW ()
 interceptorBlast =
   cmap $ \(i, Position pos, Velocity vel) ->
     -- XXX: can overshoot on laggy frames
-    if distanceA (i ^. interceptTarget . _Position) pos <= 10 then
+    if distanceA (i ^. interceptTarget . _Position) pos <= (Config.interceptDistance configuration) then
       Left
         ( Blast BlastGrowing 0
         , Velocity $ vel / 5
@@ -118,16 +120,21 @@ interceptorHit = do
         _ ->
           pure ()
 
+-- velocityOfObject ::
+
+getVelocity :: V2 Float -> V2 Float -> Float -> Velocity
+getVelocity t o speed = Velocity $ normalize (t - o) ^* speed
+
 launchMissiles :: SystemW ()
 launchMissiles = do
   count <- cfold (\n Missile{} -> n + 1) (0 :: Int)
-  when (count < 10) $ do
-    dice <- liftIO $ randomRIO @Int (0, 60 * 2)
+  when (count < (Config._MissileLimit configuration)) $ do
+    dice <- liftIO $ randomRIO @Int (0, (Config.chanceMissile configuration))
     when (dice == 0) $ do
-      ox <- liftIO $ randomRIO (-400, 400)
-      let o = V2 ox 300 + V2 0 200
+      ox <- randomUIx 0
+      let o = V2 ox (Config.verticalSpan configuration) + V2 0 (Config.groundLevelShift configuration)
 
-      tx <- liftIO $ randomRIO (-400, 400)
+      tx <- randomUIx 0
       let t = V2 tx 0
 
       void $ newEntity
@@ -136,32 +143,40 @@ launchMissiles = do
             , _missileTarget = Position t
             }
         , Position o
-        , Velocity $ normalize (t - o) * 75
+        , getVelocity t o (Config.speedMissile configuration)
         )
+
+randomUIx :: Float -> SystemW Float
+randomUIx limit = liftIO $ randomRIO (-horSpan, horSpan)
+  where
+    horSpan = Config.horizontalSpan configuration - limit
 
 launchMIRV :: SystemW ()
 launchMIRV = do
   count <- cfold (\n MIRV{} -> n + 1) (0 :: Int)
-  when (count < 1) $ do
-    dice <- liftIO $ randomRIO @Int (0, 60 * 5)
+  when (count < (Config._MIRVLimit configuration)) $ do
+    dice <- liftIO $ randomRIO @Int (0, (Config.chanceMIRV configuration))
     when (dice == 0) $ do
-      ox <- liftIO $ randomRIO (-400, 400)
-      let o@(V2 _ oy) = V2 ox 300 + V2 0 200
+      ox <- randomUIx 0
+      let o@(V2 _ oy) = V2 ox 300 + V2 0 (Config.groundLevelShift configuration)
 
-      tx <- liftIO $ randomRIO (-400, 400)
+      tx <- randomUIx (1.5 * (Config._MIRVSpread configuration))
       let t = V2 tx 0
 
       fuse <- liftIO $ randomRIO (0.33, 0.66)
       let m = V2 (ox * fuse + tx * (1 - fuse)) (oy * fuse)
 
+      nHeads <- liftIO $ randomRIO (2, 5)
       void $ newEntity
         ( MIRV
             { _mirvOrigin = Position o
             , _mirvSplit  = Position m
             , _mirvTarget = Position t
+            , _mirvSpread = 50
+            , _mirvHeads = nHeads
             }
         , Position o
-        , Velocity $ normalize (t - o) * 66
+        , getVelocity t o (Config.speedMIRV configuration)
         )
 
 missileHit :: SystemW ()
@@ -176,8 +191,8 @@ missileHit =
         let
           hitDist = distanceA mp cp
           accuracy =
-            if hitDist <= 35 then
-              35 - hitDist
+            if hitDist <= (Config.hitDist configuration) then
+              (Config.hitDist configuration) - hitDist
             else
               0
 
@@ -191,8 +206,8 @@ missileHit =
         let
           hitDist = distanceA mp sp
           accuracy =
-            if hitDist <= 35 then
-              35 - hitDist
+            if hitDist <= (Config.hitDist configuration) then
+              (Config.hitDist configuration) - hitDist
             else
               0
 
@@ -216,6 +231,19 @@ missileHit =
             _ ->
               pure ()
 
+mirvRetarget :: MIRV -> [Position]
+mirvRetarget mirv = do
+    i <- [0..n-1]
+    let rx = c + (2*s*i / (n - 1))
+    pure $ Position (V2 rx ty)
+  where
+    V2 tx ty = mirv ^. mirvTarget . _Position
+    s = (Config._MIRVSpread configuration)
+    c = tx - s
+    n :: Float
+    n = fromIntegral $ (Config._MIRVHeads configuration)
+
+
 mirvSplitup :: SystemW ()
 mirvSplitup =
   cmapM_ $ \(m, Position mp, mirv) -> do
@@ -224,10 +252,8 @@ mirvSplitup =
       Entity.destroy mirv $ Proxy @(MIRV, Position, Velocity)
 
       let o = m ^. mirvSplit . _Position
-      let V2 tx ty = m ^. mirvTarget . _Position
 
-      for_ [-1 .. 1] $ \n -> do
-        let t = V2 (max (-350) . min 350 $ tx + n * 50) ty
+      for_ (mirvRetarget m) $ \(Position t) ->
 
         void $ newEntity
           ( Missile
@@ -235,5 +261,5 @@ mirvSplitup =
               , _missileTarget = Position t
               }
           , Position mp
-          , Velocity $ normalize (t - o) * 75
+          , getVelocity t o (Config.speedMissile configuration)
           )

@@ -12,6 +12,7 @@ import qualified Scene.Load as Load
 import qualified Scene.Intro as Intro
 import qualified Scene.Gameplay as Gameplay
 import qualified Scene.Outro as Outro
+import Config
 
 draw :: SystemW Picture
 draw = do
@@ -27,7 +28,8 @@ draw = do
 
   shade <- foldDraw $ \(Shade opaq) ->
     color (withAlpha opaq black) $
-      rectangleSolid 1024 768
+      --rectangleSolid 1024 768
+      rectangleSolid (windowWidth configuration) (windowHeight configuration)
 
   pure $ mconcat
     [ scene

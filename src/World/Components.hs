@@ -84,6 +84,8 @@ data MIRV = MIRV
   { _mirvOrigin :: Position
   , _mirvSplit  :: Position
   , _mirvTarget :: Position
+  , _mirvHeads :: Int
+  , _mirvSpread :: Float
   }
   deriving (Show)
 
